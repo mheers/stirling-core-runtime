@@ -1,0 +1,54 @@
+# NOTICE
+
+This repository is an **unofficial** build. It is not affiliated
+with, endorsed by or supported by the Stirling PDF project.
+
+## This repository's own files
+
+Copyright (c) 2026 Marcel Heers. MIT — see `LICENSE`. That licence covers the
+Dockerfile, the scripts, the fixtures and the documentation that sit in this
+repository. It does not relicense anything they run.
+
+## The upstream server
+
+`Stirling-PDF-server.jar` v3.3.0, the MIT core release asset, reused
+unmodified:
+
+* Project: <https://github.com/Stirling-Tools/Stirling-PDF>
+* Release: <https://github.com/Stirling-Tools/Stirling-PDF/releases/tag/v3.3.0>
+* Asset: `Stirling-PDF-server.jar`
+* sha256: `5cb59682f93bd7d48312d36a87585ef2e8ca9ddfa64bc210dea6bd882925557c`
+* Licence: MIT (the jar's own `Implementation-Version` is 3.3.0)
+
+The jar embeds 450 third-party libraries. Their declared names, versions and
+licences are published inside the jar as
+`BOOT-INF/classes/static/3rdPartyLicenses.json`, and this repository carries
+that file verbatim at `licences/3rdPartyLicenses.json`. Those libraries remain
+under their own licences; the MIT licence above does not cover them. `sbom.cdx.json`
+lists the same set as a CycloneDX 1.5 SBOM.
+
+## The runtime packages
+
+The image adds the following Debian packages from Ubuntu 24.04 (noble). They
+remain under their own licences:
+
+| Package (observed version) | Licence |
+|---|---|
+| `libreoffice-writer-nogui`, `libreoffice-draw-nogui`, `libreoffice-core`, `libreoffice-common` (4:24.2.7-0ubuntu0.24.04.7) | MPL-2.0 and LGPL-3.0 |
+| `poppler-utils` (24.02.0-1ubuntu9.11) | GPL-2.0-or-later |
+| `qpdf` (11.9.0-1.1ubuntu0.1) | Apache-2.0 |
+| `fonts-dejavu-core` (2.37-8) | DejaVu licence (Bitstream Vera derivative) |
+| `fonts-liberation2` (1:2.1.5-3) | SIL Open Font License 1.1 |
+| `tini` (0.19.0-1) | MIT |
+| `curl` (8.5.0-2ubuntu10.16) | curl licence (MIT-like) |
+| `ca-certificates` (20260816ubuntu0.24.04.2) | MPL-2.0 |
+| Temurin 25 JRE (OpenJDK 25.0.5+8) | GPL-2.0 with the Classpath Exception |
+
+The complete corresponding source for the GPL, LGPL and MPL components is
+offered in `SOURCE_OFFER.md`.
+
+## Deliberately absent
+
+Ghostscript is not in the image. It is AGPL-3.0 and excluded by this build's
+licence floor. The engine disables the verbs that require it and answers `403`
+with a JSON body; they are named in the runtime proof.

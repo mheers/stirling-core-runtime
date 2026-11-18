@@ -1,0 +1,97 @@
+# An example deployment of the MIT core PDF runtime.
+#
+# This is the boundary the image is built for, and it is deliberately small:
+#
+#   * the network has no gateway (`internal: true`) and no port is published,
+#     so the engine is reachable only by another container on this network
+#     and cannot reach the internet even if one of its own switches is wrong;
+#   * the root filesystem is read-only and the process is uid 1001 with every
+#     capability dropped and `no-new-privileges`;
+#   * every writable path is a tmpfs, so a restart carries no document, no
+#     settings and no database;
+#   * CPU, memory and pid ceilings bound what a hostile document can do.
+#
+# Run it (the explicit project name keeps it out of any other stack):
+#
+#   docker compose -p pdf-tools -f compose.example.yaml up -d --wait
+#
+# Then, from another container attached to the `pdf-tools` network:
+#
+#   curl -fsS http://pdf-tools:8080/api/v1/info/status
+#
+# Add your client as a service on this network. Do not add a `ports:` mapping:
+# a published port on a parser of untrusted documents is the posture this file
+# exists to remove.
+name: pdf-tools
+
+services:
+  pdf-tools:
+    image: mheers/stirling-core-runtime:3.3.0-core.1
+    restart: unless-stopped
+    stop_grace_period: 30s
+
+    read_only: true
+    user: "1001:1001"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+    environment:
+      # The engine is reached over the network boundary, not a login form.
+      SECURITY_ENABLELOGIN: "false"
+      # No analytics, no update check, no URL-to-PDF: the four switches that
+      # would try to talk to the internet. The image sets the same four, so a
+      # deployment that forgets one is still silent.
+      SYSTEM_ENABLEANALYTICS: "false"
+      SYSTEM_ENABLEPOSTHOG: "false"
+      SYSTEM_SHOWUPDATE: "false"
+      SYSTEM_ENABLEURLTOPDF: "false"
+      PUID: "1001"
+      PGID: "1001"
+
+    # The image's writable roots. /tmp must be executable: the JVM unpacks
+    # libpdfium.so there, and Docker's default noexec tmpfs is a 500 on every
+    # merge.
+    tmpfs:
+      - /tmp:rw,exec,size=1536m,uid=1001,gid=1001,mode=1777
+      - /configs:rw,size=256m,uid=1001,gid=1001,mode=755
+      - /logs:rw,size=64m,uid=1001,gid=1001,mode=755
+      - /customFiles:rw,size=16m,uid=1001,gid=1001,mode=755
+      - /pipeline:rw,size=16m,uid=1001,gid=1001,mode=755
+      - /storage:rw,size=64m,uid=1001,gid=1001,mode=755
+      - /home/stirlingpdfuser:rw,exec,size=256m,uid=1001,gid=1001,mode=755
+
+    expose:
+      - "8080"
+
+    networks:
+      - pdf-tools
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -fsS --max-time 10 http://127.0.0.1:8080/api/v1/info/status || exit 1
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      # The first LibreOffice-backed request on a fresh container pays the
+      # soffice start, so the first healthy answer can take a while.
+      start_period: 120s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+    # Capacity, not a suggestion: a large document can hold several cores and
+    # gigabytes for minutes after the client has gone.
+    cpus: 2
+    mem_limit: 4g
+    memswap_limit: 4g
+    pids_limit: 512
+
+networks:
+  pdf-tools:
+    internal: true

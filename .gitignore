@@ -1,0 +1,13 @@
+# The build context's inputs are committed; its outputs are not.
+#
+# `app.jar` is the pinned upstream release asset (222 MB), downloaded and
+# verified by build-image.sh. It is never committed: the sha256 is the artefact,
+# and a reviewer reproduces it from the release URL in one command.
+app.jar
+app.jar.part
+
+# The package list is an intermediate of the SBOM step; the SBOM itself
+# (`sbom.cdx.json`) and the extracted licence list (`licences/`) are published.
+packages.tsv
+__pycache__/
+*.pyc
